@@ -1,0 +1,13 @@
+# Preprocessing & Video Dehazing Dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+opencv-python>=4.7.0
+moviepy>=2.0.0
+sk-video>=1.1.10
+scipy>=1.10.0
+numpy==1.26.4
+tqdm>=4.65.0
+Pillow>=9.5.0
+imageio>=2.30.0
+imageio-ffmpeg>=0.4.8

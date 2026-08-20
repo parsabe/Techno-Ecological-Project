@@ -1,0 +1,190 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+
+\title{\textbf{\huge AquaPulse Aquatic Vision Tracking \& Data Assimilation}\\[0.3cm]
+\Large Technical System Architecture \& Mathematical Framework Documentation}
+\author{\textbf{AquaPulse AI Research Group} \\ Department of Computer Vision \& Ecological Data Assimilation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document provides a comprehensive technical reference for the \textbf{AquaPulse AI Process} codebase. The system combines real-time underwater computer vision (YOLOv8 fine-tuned models), multi-algorithm persistent target tracking (\textsc{BoT-SORT} and \textsc{ByteTrack}), deduplicated biological census enumeration, and a stochastic Ensemble Kalman Filter (\textsc{EnKF}) data assimilation framework ($M=100$ particles). Furthermore, the architecture incorporates an interactive multi-pane OpenCV dashboard, an Ollama LLM voice agent (Dr. Daniel Pauly), bilingual (English/German) live chat query handling, and automated multi-format report exports (\textsc{CSV}, \textsc{PNG}, \textsc{Markdown}, \textsc{LaTeX/PDF}, and \textsc{DOCX}).
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{System Overview \& Core Objectives}
+The primary objective of the AquaPulse framework is to non-invasively monitor aquatic ecosystems in real time. Standard visual inspection of underwater video sources often suffers from lighting attenuation, turbidity, overlapping specimens, and rapid fish movement. The AquaPulse pipeline addresses these challenges by:
+\begin{enumerate}
+    \item Detecting and classifying marine taxa frame-by-frame using CUDA-accelerated YOLO models.
+    \item Assigning persistent track IDs to individual organisms across continuous frames using Kalman filtering and Re-ID features, effectively eliminating double-counting in biological censuses.
+    \item Extracting high-resolution cropped specimen images for each unique track ID into a localized session repository.
+    \item Forecasting unobserved apex predator populations ($Y_n$) from observed prey detections ($X_n$) using non-linear Lotka-Volterra dynamics and Euler-Maruyama stochastic differential equations.
+    \item Quantifying instantaneous extinction risk probabilities $P(\text{Extinction})$ via Ensemble Kalman Filtering (\textsc{EnKF}).
+    \item Providing an expert LLM dialogue interface (Dr. Daniel Pauly) with real-time bilingual query detection (English/German) and mouse-selected fish specimen telemetry context.
+\end{enumerate}
+
+\section{Modular Codebase Architecture}
+The codebase located at \texttt{C:\textbackslash Users\textbackslash parsa\textbackslash Desktop\textbackslash Code\textbackslash 3 - AI process} is structured into high-cohesion, decoupled Python modules:
+
+\begin{description}
+    \item[mod\_00\_config\_and\_assets.py] Hardware Acceleration \& Asset Management:
+    Detects NVIDIA CUDA GPU hardware (e.g., NVIDIA GeForce RTX 4060 Laptop GPU) or defaults to CPU mode. Manages workspace asset discovery (\texttt{johnny.gif}) and creates unique, timestamped session directories (\texttt{video\_analysis\_sessions/<VIDEO>\_<TIMESTAMP>/}) containing subfolders for \texttt{csv/}, \texttt{plots/}, \texttt{analysis/}, \texttt{output/}, and \texttt{fish\_images/}.
+    
+    \item[mod\_01\_eco\_census.py] Biological Census Engine:
+    Tracks deduplicated unique individual specimen IDs per species using set registers. Calculates total specimen counts, biomass representation percentages, and outputs formatted \texttt{fish\_counts.csv} reports with methodology statements.
+    
+    \item[mod\_02\_stats\_and\_plots.py] Telemetry Visualization Suite:
+    Generates 20 high-resolution scientific plots summarizing session metrics. Includes population time series, extinction risk trajectories, phase space orbits, species abundance distributions, Shannon diversity ($H'$), Pielou evenness ($J'$), 2D spatial heatmaps, swimmer velocity histograms, Kalman Gain dynamics, and residual error diagnostics.
+    
+    \item[mod\_03\_vision\_engine.py] Computer Vision Reticle \& FX Pipeline:
+    Renders customizable bounding box reticles, species color palettes, and motion vector trails. Implements Adaptive Underwater CLAHE (Contrast Limited Adaptive Histogram Equalization) image enhancement and synthetic water layer overlays.
+    
+    \item[mod\_04\_enkf\_telemetry.py] Stochastic Data Assimilation Engine:
+    Implements the 100-member Ensemble Kalman Filter. Integrates Lotka-Volterra predator-prey dynamics via Euler-Maruyama stochastic steps, computes empirical covariance matrices ($C_n^{(zy)}, C_n^{(yy)}$), updates state vectors using the empirical Kalman Gain ($\hat{K}_n$), and calculates extinction probabilities.
+    
+    \item[mod\_05\_dialogue\_and\_ollama.py] Ollama LLM \& Audio Dialogue Interface:
+    Interfaces with the local Ollama LLM (\texttt{llama3} / \texttt{mistral}). Powers the Dr. Daniel Pauly voice agent, GBIF species image fetcher, bilingual query engine (English/German auto-detection), and orchestrates executive Markdown, PDF, and DOCX exports.
+    
+    \item[mod\_06\_ui\_dashboard.py] 4-Pane OpenCV Dashboard:
+    Renders an interactive UI divided into Pane 1 (Live Statistical Telemetry \& EnKF Gauge), Pane 2 (Main Video Viewport), Pane 3 (Interactive Controls \& Live Chat Portal), and Pane 4 (Comm Link, Selected Fish Specimen Reticle Zoom, and Relic Overlay).
+    
+    \item[mod\_07\_pdf\_exporter.py] LaTeX PDF Generation Engine:
+    Parses \texttt{report\_template.tex}, sanitizes input strings (\texttt{escape\_latex}), populates species census data, constructs a 3-column LaTeX minipage specimen image gallery, embeds all 20 plots with analytical breakdowns, and compiles native PDFs using MiKTeX \texttt{pdflatex}.
+    
+    \item[manual\_botsort.py] Standalone BoT-SORT Module:
+    Provides standalone execution capabilities for BoT-SORT tracking with Camera Motion Compensation (GMC) and Re-ID embedding.
+    
+    \item[docx\_report\_generator.py] Microsoft Word Report Exporter:
+    Generates structured \texttt{ecological\_analysis\_report.docx} documents containing complete hotkey registries, mathematical equations, and telemetry tables.
+    
+    \item[main.py] System Orchestrator:
+    Initializes models, manages the video capture loop, processes mouse selection events, handles hotkeys (\texttt{SPACE}, \texttt{S}, \texttt{F}, \texttt{V}, \texttt{R}, \texttt{X}, \texttt{L}, \texttt{A}, \texttt{W}, \texttt{M}, \texttt{T}, \texttt{C}, \texttt{J}, \texttt{TAB/CTRL+T/CTRL+C}), and coordinates full session exports.
+\end{description}
+
+\section{Computer Vision \& Multi-Algorithm Tracking}
+The vision layer loads neural weights from the \texttt{models/} directory in strict priority order:
+\begin{equation}
+\text{Priority Hierarchy: } \texttt{fish\_model.pt} \rightarrow \texttt{best.pt} \rightarrow \texttt{medium.pt} \rightarrow \texttt{small.pt}
+\end{equation}
+
+Tracking is executed dynamically via Ultralytics YOLO with multi-algorithm support:
+\begin{itemize}
+    \item \textbf{BoT-SORT (\texttt{botsort.yaml}):} Integrates Kalman filtering with Global Motion Compensation (GMC via sparse optical flow) and appearance Re-ID features to maintain track IDs during camera movement.
+    \item \textbf{ByteTrack (\texttt{bytetrack.yaml}):} High-speed association method that preserves low-confidence detection boxes to prevent track fragmentation.
+\end{itemize}
+
+When a new track ID $i$ is initialized, a high-resolution cropped image of the specimen is saved to:
+\begin{equation}
+\texttt{video\_analysis\_sessions/<SESSION\_NAME>/fish\_images/<SPECIES>\_id<i>.png}
+\end{equation}
+
+\section{Mathematical Framework \& Data Assimilation}
+The mathematical foundation models prey abundance $X_n$ (observed via YOLO) and hidden apex predator density $Y_n$ (unobserved latent state).
+
+\subsection{Base Stochastic Differential Equation (SDE)}
+Using the Euler-Maruyama numerical scheme with process noise \cite{sprungk2023}:
+\begin{equation}
+Z_{n+1} = Z_n + \Delta t \, f(Z_n) + \sqrt{\Delta t} \, \zeta_n, \quad \zeta_n \sim \mathrm{N}(0, \Sigma)
+\end{equation}
+
+\subsection{Ecosystem Lotka-Volterra Formulation}
+Applying stochastic forcing to predator-prey dynamics \cite{sprungk2023}:
+\begin{enumerate}
+    \item \textbf{Prey Evolution (Observed Vision State):}
+    \begin{equation}
+    X_{n+1} = X_n + \Delta t \, (\alpha X_n - \beta X_n Y_n) + \sqrt{\Delta t} \, \sigma_X X_n \zeta_n^X
+    \end{equation}
+    \item \textbf{Predator Evolution (Hidden Latent Variable):}
+    \begin{equation}
+    Y_{n+1} = Y_n + \Delta t \, (\delta X_n Y_n - \gamma Y_n) + \sqrt{\Delta t} \, \sigma_Y Y_n \zeta_n^Y
+    \end{equation}
+\end{enumerate}
+where $\alpha$ is the prey birth rate, $\beta$ is the predation rate, $\delta$ is predator growth efficiency, $\gamma$ is predator mortality rate, and $\sigma_X, \sigma_Y$ represent environmental volatility.
+
+\subsection{Ensemble Kalman Filter (EnKF) Algorithm}
+Following Sprungk (2023), the EnKF operates with an ensemble of $M = 100$ state particles:
+
+\paragraph{1. Initialization Phase:}
+Draw $M$ initial samples $\mathbf{z}_0^{(m)} = [X_0^{(m)}, Y_0^{(m)}]^T, m = 1, \dots, M$, i.i.d. from prior distribution $\pi_0$, and define the initial ensemble state set:
+\begin{equation}
+\mathfrak{Z}_0^a = \left\{ \mathbf{z}_0^{(1)}, \dots, \mathbf{z}_0^{(M)} \right\}
+\end{equation}
+
+\paragraph{2. Sequential Forecasting Phase (For $n = 1, 2, 3, \dots$):}
+Sample independently for each ensemble member $m = 1, \dots, M$:
+\begin{equation}
+\mathbf{z}_n^{(m)} \sim P(\mathbf{z}_{n-1}^{(m)}), \quad y_n^{(m)} \sim \mathrm{N}(H(\mathbf{z}_{n-1}^{(m)}), \Gamma)
+\end{equation}
+where $H = [1, 0]$ is the observation operator extracting prey counts, $\Gamma$ is measurement variance, and define the forecast ensemble state set:
+\begin{equation}
+\mathfrak{Z}_n^f = \left\{ \mathbf{z}_n^{(1)}, \dots, \mathbf{z}_n^{(M)} \right\}
+\end{equation}
+
+\paragraph{3. Empirical Covariance Computation:}
+Compute the empirical ensemble state mean $\bar{\mathbf{z}}_n$ and empirical measurement mean $\bar{y}_n$:
+\begin{equation}
+\bar{\mathbf{z}}_n = \frac{1}{M} \sum_{m=1}^M \mathbf{z}_n^{(m)}, \quad \bar{y}_n = \frac{1}{M} \sum_{m=1}^M y_n^{(m)}
+\end{equation}
+Calculate the empirical cross-covariance matrix $C_n^{(zy)}$ and measurement error covariance matrix $C_n^{(yy)}$:
+\begin{equation}
+C_n^{(zy)} = \frac{1}{M-1} \sum_{m=1}^M \left(\mathbf{z}_n^{(m)} - \bar{\mathbf{z}}_n\right) \left(y_n^{(m)} - \bar{y}_n\right)^T
+\end{equation}
+\begin{equation}
+C_n^{(yy)} = \frac{1}{M-1} \sum_{m=1}^M \left(y_n^{(m)} - \bar{y}_n\right) \left(y_n^{(m)} - \bar{y}_n\right)^T
+\end{equation}
+
+\paragraph{4. Empirical Kalman Gain \& Analysis Update:}
+Compute the empirical Kalman Gain matrix $\hat{K}_n$:
+\begin{equation}
+\hat{K}_n := C_n^{(zy)} \left(C_n^{(yy)}\right)^{-1}
+\end{equation}
+Update each ensemble state vector using the live YOLO measurement observation $y_n$:
+\begin{equation}
+\mathbf{z}_n^{(m)} = \mathbf{z}_n^{(m)} + \hat{K}_n \left(y_n - y_n^{(m)}\right)
+\end{equation}
+and define the updated analysis ensemble state set:
+\begin{equation}
+\mathfrak{Z}_n^a = \left\{ \mathbf{z}_n^{(1)}, \dots, \mathbf{z}_n^{(M)} \right\}
+\end{equation}
+
+\paragraph{5. Extinction Risk Probability Evaluation:}
+Evaluate the proportion of ensemble members crossing the critical threshold $X_{\text{crit}} = 2.0$:
+\begin{equation}
+P(\text{Extinction}) = \frac{1}{M} \sum_{m=1}^M \mathbb{I}\left(X_n^{(m)} \le X_{\text{crit}}\right)
+\end{equation}
+
+\section{Interactive UI \& Language Engine}
+\begin{itemize}
+    \item \textbf{Target Selection via Mouse:} Clicking a bounding box in the main video pane locks the target specimen (\texttt{locked\_target}). The reticle highlights the target and displays a high-resolution zoomed preview in Pane 4.
+    \item \textbf{Targeted Dr. Pauly Calls:} When Dr. Pauly is called (via key \texttt{C}, button \texttt{[C] DR. PAULY}, or chat), the system passes the mouse-selected specimen's ID, species name, and confidence score into the LLM context.
+    \item \textbf{Bilingual Live Chat Portal:} Opened via button \texttt{[CHAT] [TAB / CTRL+T / CTRL+C]} or hotkeys (\texttt{TAB}, \texttt{CTRL+T}, \texttt{CTRL+C}). The prompt engine automatically detects whether the user's question is typed in English or German and responds in the matching language.
+    \item \textbf{Pause Inspection Mode:} Redundant model tracking is bypassed during pause, allowing full mouse target selection, UI control toggling, and Dr. Pauly calls on static frames without CPU/GPU load.
+\end{itemize}
+
+\section{Session Output Artifacts}
+At the end of each session (or upon closing the application), the pipeline automatically compiles:
+\begin{enumerate}
+    \item \textbf{Tracked MP4 Video:} Saved to \texttt{output/tracked\_<VIDEO>.mp4}.
+    \item \textbf{Deduplicated CSV Report:} Saved to \texttt{csv/fish\_counts.csv}.
+    \item \textbf{20 Scientific Plots:} Saved to \texttt{plots/01\_...png} through \texttt{plots/20\_...png}.
+    \item \textbf{Cropped Fish Gallery:} Saved to \texttt{fish\_images/<SPECIES>\_id<ID>.png}.
+    \item \textbf{Executive Markdown Report:} Saved to \texttt{analysis/ollama\_marine\_report.md}.
+    \item \textbf{LaTeX Source \& Compiled Native PDF:} Saved to \texttt{analysis/ollama\_marine\_report.tex} and \texttt{.pdf}.
+    \item \textbf{Microsoft Word DOCX Document:} Saved to \texttt{analysis/ecological\_analysis\_report.docx}.
+\end{enumerate}
+
+\section{References}
+\begin{thebibliography}{9}
+    \bibitem{sprungk2023} Sprungk, B. (2023). \textit{Probabilistic Forecasting and Data Assimilation}. Lecture Course Notes, TU Bergakademie Freiberg (TUBAF).
+\end{thebibliography}
+
+\end{document}

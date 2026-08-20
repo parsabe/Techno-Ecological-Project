@@ -1,0 +1,135 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+
+\title{\textbf{AquaPulse Aquatic Vision Tracking Analysis}}
+\author{Dr. Daniel Pauly \textit{(Lead Scientist)}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{1. Abstract}
+Quantitative assessment of aquatic biological communities is fundamental to understanding ecosystem resilience, species abundance, and trophic dynamics. In this study, we present a unified deep learning vision tracking and stochastic Ensemble Kalman Filter (EnKF) data assimilation architecture.
+
+\section*{2. Video Processing, Species Detection Census \& Specimen Gallery}
+\subsection*{2.1 Biological Species Census Summary Table}
+The following table summarizes all detected marine taxa within the current video stream, including deduplicated individual specimen counts (via BoT-SORT / ByteTrack), proportional biomass representation, and community dominance ranking:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Rank} & \textbf{Species Name} & \textbf{Unique Count} & \textbf{Biomass Representation (\%)} \\
+\midrule
+{{SPECIES_CENSUS_DATA}}
+\bottomrule
+\end{tabular}
+\caption{Deduplicated per-species biological census summary.}
+\end{table}
+
+\subsection*{2.2 Detected Specimen Image Gallery}
+High-resolution specimen bounding box crops captured dynamically during video processing are stored in the session repository and rendered below:
+
+{{FISH_GALLERY_DATA}}
+
+\section*{3. Methodology \& Mathematical Framework}
+\subsection*{3.1 The Extinction Problem \& Ecosystem Dynamics}
+The core mathematical challenge is that the YOLO model only observes specific prey fishes, while the apex predators remain unobserved (hidden latent variables). We must forecast the probability of prey crossing a critical extinction threshold.
+
+\paragraph{The Base Stochastic Formulation \cite{sprungk2023}:}
+\begin{equation}
+Z_{n+1} = Z_n + \Delta t f(Z_n) + \sqrt{\Delta t} \zeta_n
+\end{equation}
+
+\paragraph{Applied to Ecosystem Dynamics \cite{sprungk2023}:}
+\begin{enumerate}
+    \item \textbf{Prey Evolution (Observed via YOLO):}
+    \begin{equation}
+    X_{n+1} = X_n + \Delta t (\alpha X_n - \beta X_n Y_n) + \sqrt{\Delta t} \sigma_X X_n \zeta_n^X
+    \end{equation}
+    \item \textbf{Predator Evolution (Hidden Latent Variable):}
+    \begin{equation}
+    Y_{n+1} = Y_n + \Delta t (\delta X_n Y_n - \gamma Y_n) + \sqrt{\Delta t} \sigma_Y Y_n \zeta_n^Y
+    \end{equation}
+\end{enumerate}
+
+\subsection*{3.2 The Ensemble Kalman Filter (EnKF) Workflow \cite{sprungk2023}}
+Following Sprungk (2023), the Ensemble Kalman Filter (EnKF) algorithm operates via an initialization phase followed by sequential forecasting and empirical measurement assimilation updates:
+
+\paragraph{EnKF Initialization:}
+Given a State Space Model (SSM) with initial distribution $\pi_0$, draw $M$ initial samples $\mathbf{z}_0^{(m)}, m = 1, \dots, M$, i.i.d. according to $\pi_0$ and set the initial ensemble state set:
+\begin{equation}
+\mathfrak{Z}_0^a = \left\{ \mathbf{z}_0^{(1)}, \dots, \mathbf{z}_0^{(M)} \right\}
+\end{equation}
+
+\paragraph{For $n = 1, 2, 3, \dots$ do:}
+\begin{itemize}
+    \item \textbf{Forecasting Step:} Sample independently for $m = 1, \dots, M$:
+    \begin{equation}
+    \mathbf{z}_n^{(m)} \sim P(\mathbf{z}_{n-1}^{(m)}), \quad y_n^{(m)} \sim \mathrm{N}(H(\mathbf{z}_{n-1}^{(m)}), \Gamma)
+    \end{equation}
+    and set the forecast ensemble state set:
+    \begin{equation}
+    \mathfrak{Z}_n^f = \left\{ \mathbf{z}_n^{(1)}, \dots, \mathbf{z}_n^{(M)} \right\}
+    \end{equation}
+\end{itemize}
+
+\paragraph{Empirical Covariance \& Analysis Update:}
+The ensemble empirical means $\bar{\mathbf{z}}_n$ and $\bar{y}_n$ used in covariance estimations are defined as:
+\begin{equation}
+\bar{\mathbf{z}}_n = \frac{1}{M} \sum_{m=1}^M \mathbf{z}_n^{(m)}, \quad \bar{y}_n = \frac{1}{M} \sum_{m=1}^M y_n^{(m)}
+\end{equation}
+The cross-covariance matrix $C_n^{(zy)}$ and measurement error covariance matrix $C_n^{(yy)}$ across ensemble members are calculated as:
+\begin{equation}
+C_n^{(zy)} = \frac{1}{M-1} \sum_{m=1}^M \left(\mathbf{z}_n^{(m)} - \bar{\mathbf{z}}_n\right) \left(y_n^{(m)} - \bar{y}_n\right)^T
+\end{equation}
+\begin{equation}
+C_n^{(yy)} = \frac{1}{M-1} \sum_{m=1}^M \left(y_n^{(m)} - \bar{y}_n\right) \left(y_n^{(m)} - \bar{y}_n\right)^T
+\end{equation}
+The empirical Kalman gain $\hat{K}_n$ and state vector analysis update for each ensemble member $m = 1, \dots, M$ are given by:
+\begin{equation}
+\hat{K}_n := C_n^{(zy)} \left(C_n^{(yy)}\right)^{-1}, \quad \mathbf{z}_n^{(m)} = \mathbf{z}_n^{(m)} + \hat{K}_n \left(y_n - y_n^{(m)}\right)
+\end{equation}
+and set the updated analysis ensemble state set:
+\begin{equation}
+\mathfrak{Z}_n^a = \left\{ \mathbf{z}_n^{(1)}, \dots, \mathbf{z}_n^{(M)} \right\}
+\end{equation}
+
+Extinction probability is evaluated across ensemble members as:
+\begin{equation}
+P(\text{Extinction}) = \frac{1}{M} \sum_{m=1}^M \mathbb{I}\left(X_n^{(m)} \le X_{\text{crit}}\right)
+\end{equation}
+
+\section*{4. Results \& Statistical Analysis}
+\subsection*{4.1 Statistical Summary Table}
+\begin{table}[h!]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Metric} & \textbf{Prey (X)} & \textbf{Predator (Y)} & \textbf{Extinction Risk (\%)} \\
+\midrule
+{{STATS_DATA}}
+\bottomrule
+\end{tabular}
+\caption{Descriptive statistics from session telemetry.}
+\end{table}
+
+\subsection*{4.2 Embedded Telemetry Plots \& Analytical Breakdowns}
+{{PLOTS_DATA}}
+
+\section*{5. Discussion}
+The integration of automated computer vision with Stochastic Ensemble Kalman Filtering represents a significant advancement in non-invasive aquatic observation \cite{sprungk2023}.
+
+\section*{6. Conclusion}
+The unified vision tracking and data assimilation architecture successfully tracks aquatic species while quantifying extinction probabilities in real time.
+
+\section*{7. References}
+\begin{thebibliography}{9}
+    \bibitem{sprungk2023} Sprungk, B. (2023). \textit{Probabilistic Forecasting and Data Assimilation}. Lecture Course Notes, TU Bergakademie Freiberg (TUBAF).
+\end{thebibliography}
+
+\end{document}
